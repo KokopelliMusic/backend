@@ -1,11 +1,10 @@
-import { Session } from "./SessionManager"
-import { Socket } from "socket.io"
+import { Sessions } from "./session"
 
 export const getRandomNumber = (lower: number, upper: number) => {
   return Math.floor(Math.random() * (upper - lower + 1) + lower)
 }
 
-export const generateCode = (sessions: Array<string>): string => {
+export const generateCode = (sessions: string[]): string => {
   const POSSIBLE_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
   const len = POSSIBLE_LETTERS.length
   let code = ''
@@ -22,7 +21,7 @@ export const generateCode = (sessions: Array<string>): string => {
   return code
 }
 
-export const getAllSessionIDs = (sessions: Map<string, Session>): string[] => {
+export const getAllSessionIDs = (sessions: Sessions): string[] => {
   let res = []
   for (let x in sessions.keys()) {
     res.push(x)

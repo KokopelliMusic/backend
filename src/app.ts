@@ -1,45 +1,50 @@
-import { json } from 'body-parser'
-import express from 'express'
-import SocketIO, { Socket } from 'socket.io'
-import homeRouter from './home'
-import SessionManager, { Session } from './SessionManager'
-import cors from 'cors'
-import { generateCode, getAllSessionIDs } from './util'
-import Events from './Events'
+import Fastify, { FastifyInstance } from 'fastify'
+import { claimSession, claimSessionSchema, newSession, newSessionSchema, Session, Sessions } from './session'
 
-// Create server
-const app = express()
+const server: FastifyInstance = Fastify({ 
+  logger: true
+})
 
-// Setup express
-const port = 8080
-app.set('port', process.env.PORT || port)
-app.use(cors())
-app.use(json())
+server.register(require('fastify-swagger'), {
+  exposeRoute: true,
+  routePrefix: '/documentation',
+  info: {
+    title: 'Kokopelli-Docs',
+    version: '3.0.0'
+  }
+})
 
-// Start the server
-const server = app.listen(port, () => console.log(`Listening on http://localhost:${port}`))
+server.register(require('fastify-cors'))
 
-// Setup SocketIO and the SessionManager
-const io = SocketIO.listen(server, {})
+const sessions: Sessions = new Map<String, Session>()
 
-const sessions = new Map<string, Session>()
-const sessionManager = new SessionManager(io, sessions)
+server.addHook('preHandler', async (req, reply) => {
+  // @ts-expect-error
+  req.sessions = sessions
+})
 
-// Generate a session id for every client
-// io.engine.generateId = (): string => {
-  // return generateCode(getAllSessionIDs(sessions))
-// }
+server.get('/session/new', newSessionSchema, newSession)
+server.get('/session/claim', claimSessionSchema, claimSession)
 
-// io.on('connection', (socket: Socket) => {
-//   console.log(`user ${socket.id} connected`)
+setInterval(() => {
+  sessions.forEach((session, key) => {
+    // if the session was created more than 2 days ago, delete it
+    if (new Date().getTime() + 48 * 60 * 60 * 1000 >= session.started.getTime()) {
+      sessions.delete(key)
+    }
+  })
+}, 24 * 60 * 60 * 1000)
 
-//   // dit doen met namespaces zodat meerdere apparaten op 1 sessie kunnen luisteren
-//   sessions.set(socket.id, { webclient: socket, code: socket.id })
-  
-//   socket.emit(Events.SESSION_ID, socket.id)
-//   setInterval(() => socket.emit('test,', 1), 10)
-// })
+const start = async () => {
+  try {
+    await server.listen(3000)
 
-// Setup routes
-app.use('/', homeRouter)
-app.use('/session', sessionManager.router)
+    const address = server.server.address()
+    const port = typeof address === 'string' ? address : address?.port
+
+  } catch (err) {
+    server.log.error(err)
+    process.exit(1)
+  }
+}
+start()
