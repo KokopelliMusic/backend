@@ -37,7 +37,7 @@ setInterval(() => {
 
 const start = async () => {
   try {
-    await server.listen(3000)
+    await server.listen(8080)
 
     const address = server.server.address()
     const port = typeof address === 'string' ? address : address?.port

@@ -1,6 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify"
-import { ServerResponse } from "http"
-import { generateCode } from "./util"
+import { generateCode, getAllSessionIDs } from "./util"
 
 export interface Session {
   claimed: boolean
@@ -24,10 +23,17 @@ export const newSessionSchema = {
 
 export const newSession = async (req: FastifyRequest, res: FastifyReply) => {
   // @ts-expect-error
-  const { sessions } = req
-  const code = generateCode(sessions)
+  const sessions: Sessions = req.sessions
+  const code = generateCode(getAllSessionIDs(sessions))
 
+  sessions.set(code, {
+    claimed: false,
+    started: new Date()
+  })
 
+  return {
+    code
+  }
   
 }
 
@@ -45,7 +51,6 @@ export const claimSessionSchema = {
         type: 'object',
         properties: {
           exists:  { type: 'boolean' },
-          alreadyClaimed: { type: 'boolean' },
           success: { type: 'boolean' }
         }
       }
@@ -55,20 +60,22 @@ export const claimSessionSchema = {
 
 export const claimSession = async (req: FastifyRequest, res: FastifyReply) => {
   // @ts-expect-error
-  const { sessions, query: { code } } = req
+  const { sessions } = req
+  // @ts-expect-error
+  let code = req.query.code.toUpperCase()
   const exists = sessions.has(code)
 
   if (!exists) {
-    return { exists: false }
+    return { exists: false, success: false }
   }
 
   const claimed = sessions.get(code).claimed
 
   if (claimed) {
-    return { exists: true, alreadyClaimed: true }
+    return { exists: true, success: false }
   }
   
   sessions.set(code, { claimed: true })
     
-  return { exists, alreadyClaimed: false, success: true }
+  return { exists, success: true }
 }
