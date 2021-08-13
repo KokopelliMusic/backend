@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify"
+import { createSessionInDB } from "./db"
 import { generateCode, getAllSessionIDs } from "./util"
 
 export interface Session {
@@ -6,7 +7,7 @@ export interface Session {
   started: Date
 }
 
-export type Sessions = Map<String, Session>
+export type Sessions = Map<string, Session>
 
 export const newSessionSchema = {
   schema: {
@@ -25,10 +26,11 @@ export const newSession = async (req: FastifyRequest, res: FastifyReply) => {
   // @ts-expect-error
   const sessions: Sessions = req.sessions
   const code = generateCode(getAllSessionIDs(sessions))
+  const started = new Date()
 
   sessions.set(code, {
     claimed: false,
-    started: new Date()
+    started
   })
 
   return {
@@ -41,9 +43,11 @@ export const claimSessionSchema = {
   schema: {
     querystring: {
       type: 'object',
-      required: [ 'code' ],
+      required: [ 'code', 'playlistId', 'uid' ],
       properties: {
-        code: { type: 'string' }
+        code: { type: 'string' },
+        playlistId: { type: 'string' },
+        uid: { type: 'string' }
       }
     },
     response: {
@@ -75,7 +79,10 @@ export const claimSession = async (req: FastifyRequest, res: FastifyReply) => {
     return { exists: true, success: false }
   }
   
-  sessions.set(code, { claimed: true })
+  sessions.set(code, { claimed: true, started: new Date() })
+  // @ts-expect-error
+  createSessionInDB(code, req.query.uid, req.query.playlistId, new Date()) 
+
     
   return { exists, success: true }
 }

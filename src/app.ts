@@ -1,5 +1,8 @@
 import Fastify, { FastifyInstance } from 'fastify'
 import { claimSession, claimSessionSchema, newSession, newSessionSchema, Session, Sessions } from './session'
+import * as admin from 'firebase-admin'
+import { FIREBASE_CONFIG } from './config.json'
+import { getAllSessionsFromDB, removeSessionFromDB } from './db'
 
 const server: FastifyInstance = Fastify({ 
   logger: true
@@ -16,7 +19,7 @@ server.register(require('fastify-swagger'), {
 
 server.register(require('fastify-cors'))
 
-const sessions: Sessions = new Map<String, Session>()
+const sessions: Sessions = new Map<string, Session>()
 
 server.addHook('preHandler', async (req, reply) => {
   // @ts-expect-error
@@ -33,11 +36,27 @@ setInterval(() => {
       sessions.delete(key)
     }
   })
-}, 24 * 60 * 60 * 1000)
+
+  getAllSessionsFromDB()
+    .then(sessions => {
+      for (const [code, session] of Object.entries(sessions)) {
+        // @ts-expect-error
+        if (new Date().getTime() + 48 >= session.started) {
+          removeSessionFromDB(code)
+        }
+      }
+    })
+// run it every 12 hours
+}, 12 * 60 * 60 * 1000)
 
 const start = async () => {
   try {
     await server.listen(8080)
+
+    admin.initializeApp({
+      credential: admin.credential.cert(require('./firebase.json')),
+      databaseURL: FIREBASE_CONFIG.databaseURL
+    })
 
     const address = server.server.address()
     const port = typeof address === 'string' ? address : address?.port

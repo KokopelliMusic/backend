@@ -44,6 +44,7 @@
   "dependencies": {
     "fastify": "^3.20.1",
     "fastify-cors": "^6.0.2",
-    "fastify-swagger": "^4.8.4"
+    "fastify-swagger": "^4.8.4",
+    "firebase-admin": "^9.11.0"
   }
 }
