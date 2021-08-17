@@ -1,5 +1,8 @@
 import { Sessions } from "./session"
 
+/**
+ * Generate a random number between lower (inclusive) and upper (inclusive)
+ */
 export const getRandomNumber = (lower: number, upper: number) => {
   return Math.floor(Math.random() * (upper - lower + 1) + lower)
 }
@@ -22,8 +25,8 @@ export const generateCode = (sessions: string[]): string => {
 }
 
 export const getAllSessionIDs = (sessions: Sessions): string[] => {
-  let res = []
-  for (let x in sessions.keys()) {
+  const res = []
+  for (const x in sessions.keys()) {
     res.push(x)
   }
   return res

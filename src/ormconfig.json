@@ -1,0 +1,16 @@
+{
+  "type": "sqlite",
+  "database": "./playlists.db",
+  "autoSchemaSync": true,
+  "synchronize": true,
+  "emitDecoratorMetadata": true,
+  "entities": [
+    "src/entity/**/*.ts"
+  ],
+  "migrations": [
+    "src/migration/**/*.ts"
+  ],
+  "subscribers": [
+    "src/subscriber/**/*.ts"
+  ]
+}

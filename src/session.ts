@@ -1,10 +1,18 @@
 import { FastifyReply, FastifyRequest } from "fastify"
 import { createSessionInDB } from "./db"
 import { generateCode, getAllSessionIDs } from "./util"
+import { SPOTIFY_REFRESH } from './config.json'
 
 export interface Session {
   claimed: boolean
-  started: Date
+  started: number
+  playlistId?: string
+  uid?: string
+}
+
+interface Weight {
+  weight: number
+  incrementor: number
 }
 
 export type Sessions = Map<string, Session>
@@ -26,7 +34,7 @@ export const newSession = async (req: FastifyRequest, res: FastifyReply) => {
   // @ts-expect-error
   const sessions: Sessions = req.sessions
   const code = generateCode(getAllSessionIDs(sessions))
-  const started = new Date()
+  const started = new Date().getTime()
 
   sessions.set(code, {
     claimed: false,
@@ -36,7 +44,7 @@ export const newSession = async (req: FastifyRequest, res: FastifyReply) => {
   return {
     code
   }
-  
+
 }
 
 export const claimSessionSchema = {
@@ -66,7 +74,7 @@ export const claimSession = async (req: FastifyRequest, res: FastifyReply) => {
   // @ts-expect-error
   const { sessions } = req
   // @ts-expect-error
-  let code = req.query.code.toUpperCase()
+  const code = req.query.code.toUpperCase()
   const exists = sessions.has(code)
 
   if (!exists) {
@@ -78,11 +86,13 @@ export const claimSession = async (req: FastifyRequest, res: FastifyReply) => {
   if (claimed) {
     return { exists: true, success: false }
   }
-  
-  sessions.set(code, { claimed: true, started: new Date() })
-  // @ts-expect-error
-  createSessionInDB(code, req.query.uid, req.query.playlistId, new Date()) 
 
-    
+  // @ts-expect-error
+  const { uid, playlistId } = req.query
+
+  sessions.set(code, { claimed: true, started: new Date(), uid, playlistId })
+  createSessionInDB(code, uid, playlistId, new Date())
+
+
   return { exists, success: true }
 }
