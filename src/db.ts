@@ -111,9 +111,10 @@ export const watchCurrentlyPlaying = (db: Connection, code: string) => {
 }
 
 export const removeCurrentlyPlaying = (code: string) => {
-  database()
-    .ref('/currently-playing/' + code)
-    .off()
+  const ref = database().ref('/currently-playing/' + code)
+  ref.remove()
+  ref.off()
+  
 }
 
 const updateSpotifyPlays = (db: Connection, spotifyId: string, playlistId: string) => {

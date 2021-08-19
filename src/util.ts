@@ -8,8 +8,7 @@ export const getRandomNumber = (lower: number, upper: number) => {
 }
 
 export const generateCode = (sessions: string[]): string => {
-  // const POSSIBLE_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F',]
-  const POSSIBLE_LETTERS = 'ABCDEFGHIJKMNOPQRSTUVWXYZ'
+  const POSSIBLE_LETTERS = 'ABCDEFGHIJKNOPQRSTUVXYZ'
   const len = POSSIBLE_LETTERS.length
   let code = ''
 
