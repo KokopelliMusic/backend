@@ -8,7 +8,8 @@ export const getRandomNumber = (lower: number, upper: number) => {
 }
 
 export const generateCode = (sessions: string[]): string => {
-  const POSSIBLE_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+  // const POSSIBLE_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F',]
+  const POSSIBLE_LETTERS = 'ABCDEFGHIJKMNOPQRSTUVWXYZ'
   const len = POSSIBLE_LETTERS.length
   let code = ''
 
@@ -26,7 +27,7 @@ export const generateCode = (sessions: string[]): string => {
 
 export const getAllSessionIDs = (sessions: Sessions): string[] => {
   const res = []
-  for (const x in sessions.keys()) {
+  for (const x of Object.keys(sessions)) {
     res.push(x)
   }
   return res

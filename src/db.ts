@@ -51,7 +51,7 @@ const watchUsersAndInitialze = (code: string, playlistId: string) => {
     // Every time a user is added, run this function
     .on('child_added', (snap) => {
       db
-      .ref(`/sessions/${code}/weights/${snap.val()}`)  
+      .ref(`/sessions/${code}/weights/${snap.val()}`)
       .set(BASE_WEIGHT)
     })
 }
@@ -80,7 +80,7 @@ export const getPlaylist = async (db: Connection, playlistId: string): Promise<P
 
 export const getWeights = (code: string) => {
 
-  return get(`/sessions/${code}/weights`) 
+  return get(`/sessions/${code}/weights`)
     .then(w => {
       console.log(w)
       const weights: Weights = new Map<string, Weight>()
@@ -94,15 +94,45 @@ export const getWeights = (code: string) => {
     })
 }
 
+export const watchCurrentlyPlaying = (db: Connection, code: string) => {
+  database()
+    .ref('/currently-playing/' + code)
+    .on('value', snap => {
+      const song = snap.val()
+
+      if (!song) return
+
+      console.log('Currently playing: ', song)
+
+      if (song.spotifyId && song.playlistId) {
+        updateSpotifyPlays(db, song.spotifyId, song.playlistId)
+      }
+    })
+}
+
+export const removeCurrentlyPlaying = (code: string) => {
+  database()
+    .ref('/currently-playing/' + code)
+    .off()
+}
+
+const updateSpotifyPlays = (db: Connection, spotifyId: string, playlistId: string) => {
+  db.createQueryBuilder()
+    .update(SpotifySong)
+    .set({ plays: () => "plays + 1" })
+    .where({ playlistId, spotifyId })
+    .execute()
+}
+
 /**
- * Java style function naming lol. 
+ * Java style function naming lol.
  * anyway it returns an object mapping the uid to the songs that have not been played more than
- * const MAX_PLAYED 
+ * const MAX_PLAYED
  */
 export const getAllSongsPerUserNotPlayedEnough = async (db: Connection, playlistId: string): Promise<Map<string, SpotifySong[]>> => {
   return await getPlaylist(db, playlistId)
     .then(list => {
-      let songs = new Map<string, SpotifySong[]>()
+      const songs = new Map<string, SpotifySong[]>()
 
       list.songs.forEach(song => {
         if (song.plays === undefined || song.plays < MAX_PLAYS) {
@@ -121,7 +151,7 @@ export const getAllSongsPerUserNotPlayedEnough = async (db: Connection, playlist
 }
 
 export const resetAllSongs = async (db: Connection, playlistId: string) => {
-  db.createQueryBuilder()
+  return await db.createQueryBuilder()
     .update(SpotifySong)
     .set({ plays: 0 })
     .where({ playlistId })

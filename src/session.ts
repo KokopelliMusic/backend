@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify"
-import { createSessionInDB } from "./db"
+import { createSessionInDB, watchCurrentlyPlaying } from "./db"
 import { generateCode, getAllSessionIDs } from "./util"
 import { SPOTIFY_REFRESH } from './config.json'
 
@@ -72,7 +72,7 @@ export const claimSessionSchema = {
 
 export const claimSession = async (req: FastifyRequest, res: FastifyReply) => {
   // @ts-expect-error
-  const { sessions } = req
+  const { sessions, db } = req
   // @ts-expect-error
   const code = req.query.code.toUpperCase()
   const exists = sessions.has(code)
@@ -92,6 +92,7 @@ export const claimSession = async (req: FastifyRequest, res: FastifyReply) => {
 
   sessions.set(code, { claimed: true, started: new Date(), uid, playlistId })
   createSessionInDB(code, uid, playlistId, new Date())
+  watchCurrentlyPlaying(db, code)
 
 
   return { exists, success: true }

@@ -1,6 +1,6 @@
 {
   "type": "sqlite",
-  "database": "./playlists.db",
+  "database": "./db/playlists.db",
   "autoSchemaSync": true,
   "synchronize": true,
   "emitDecoratorMetadata": true,

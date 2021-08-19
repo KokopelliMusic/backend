@@ -27,11 +27,10 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   // @ts-expect-error
   const db: Connection = req.db
 
-
   const session = await getSession(code)
-  const weightsFromDb = await getWeights(code)
+  let weightsFromDb = await getWeights(code)
   const playlist = await getPlaylist(db, session.playlistId)
-  const songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+  let songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
 
   // TODO events toevoegen
   weightsFromDb.delete('event')
@@ -48,8 +47,12 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   while (!selectedSongs || selectedSongs.length === 0) {
 
     if (weightsFromDb.size === 0) {
-      // TODO test dit
       await resetAllSongs(db, session.playlistId)
+      console.log('resetting songs')
+      songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+      weightsFromDb = await getWeights(code)
+      // TODO lol
+      weightsFromDb.delete('event')
     }
 
     // Get all weights
@@ -62,21 +65,21 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
       }
     }
 
-    const uid = weights[getRandomNumber(0, weights.length - 1)]
+    const selectedUid = weights[getRandomNumber(0, weights.length - 1)]
 
-    if (uid === 'event') {
+    if (selectedUid === 'event') {
       selectedSongs = ['event']
       break
     }
 
-    selectedSongs = songs.get(uid)
+    selectedSongs = songs.get(selectedUid)
 
     if (!selectedSongs || selectedSongs.length === 0) {
       // this user has no songs left
-      weightsFromDb.delete(uid)
+      weightsFromDb.delete(selectedUid)
     }
   }
-  
+
   if (selectedSongs.length === 1 && selectedSongs[0] === 'event') {
     return {
       type: 'event',

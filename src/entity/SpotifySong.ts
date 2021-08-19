@@ -20,7 +20,7 @@ export class SpotifySong {
 
   @Column()
   length: number
-  
+
   @Column()
   addedBy: string
 

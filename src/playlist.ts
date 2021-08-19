@@ -36,7 +36,7 @@ export const addSpotifySong = async (req: FastifyRequest, reply: FastifyReply) =
   // @ts-expect-error
   const { playlistId, uid, addedBy, artist, title, cover, length, spotifyId } = req.body
 
-  let s = new SpotifySong()
+  const s = new SpotifySong()
   s.artist = artist
   s.spotifyId = spotifyId
   s.playlistId = playlistId
@@ -48,7 +48,7 @@ export const addSpotifySong = async (req: FastifyRequest, reply: FastifyReply) =
   s.plays = 0
 
   const unique = await checkIfSongIsUnique(db, playlistId, spotifyId)
-  
+
 
   if (!unique) {
     return {
@@ -56,7 +56,7 @@ export const addSpotifySong = async (req: FastifyRequest, reply: FastifyReply) =
     }
   }
 
-  const success = await db.manager.save(s).then(s => true).catch(err => false)
+  const success = await db.manager.save(s).then(suc => true).catch(err => false)
 
   console.log(success)
 
@@ -99,6 +99,6 @@ export const getNumberOfSongs = async (req: FastifyRequest, reply: FastifyReply)
 
 const checkIfSongIsUnique = async (db: Connection, playlistId: string, spotifyId: string) => {
   const [, count] = await db.manager.findAndCount(SpotifySong, { where: { playlistId, spotifyId }})
-  
+
   return count === 0
 }
