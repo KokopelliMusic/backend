@@ -87,13 +87,6 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
       weightsFromDb.delete(selectedUid)
     }
 
-    if (weightsFromDb.size === 0) {
-      return {
-        type: 'nosongs',
-        data: {}
-      }
-    }
-
   }
 
   if (event) {
