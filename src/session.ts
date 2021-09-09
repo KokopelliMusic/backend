@@ -41,6 +41,8 @@ export const newSession = async (req: FastifyRequest, res: FastifyReply) => {
     started
   })
 
+  console.log('New session ', code)
+
   return {
     code
   }

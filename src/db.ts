@@ -19,8 +19,13 @@ type Weights = Map<string, Weight>
 
 type Weight = number
 
+type CurrentlyPlaying = {
+  addedBy: string
+  id: number
+}
+
 export const BASE_WEIGHT = 10
-export const MAX_PLAYS = 3
+export const MAX_PLAYS = 2
 
 export const createSessionInDB = (code: string, uid: string, playlistId: string, started: Date) => {
   const object = {
@@ -70,6 +75,10 @@ export const getSession = (code: string): Promise<Session> => {
   return get('/sessions/' + code)
 }
 
+export const getCurrentlyPlaying = (code: string): Promise<CurrentlyPlaying> => {
+  return get('/currently-playing/' + code)
+}
+
 export const getPlaylist = async (db: Connection, playlistId: string): Promise<Playlist> => {
   const list: Playlist = await get('/playlists/' + playlistId)
   const songs: SpotifySong[] = await db.manager.find(SpotifySong, { where: { playlistId }})
@@ -82,7 +91,6 @@ export const getWeights = (code: string) => {
 
   return get(`/sessions/${code}/weights`)
     .then(w => {
-      console.log(w)
       const weights: Weights = new Map<string, Weight>()
 
       for (const [uid, weight] of Object.entries(w)) {
@@ -95,6 +103,7 @@ export const getWeights = (code: string) => {
 }
 
 export const watchCurrentlyPlaying = (db: Connection, code: string) => {
+  console.log('Start watching for plays ', code)
   database()
     .ref('/currently-playing/' + code)
     .on('value', snap => {

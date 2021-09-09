@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify"
-import { getAllSongsPerUserNotPlayedEnough, getPlaylist, getSession, getWeights, resetAllSongs } from "./db"
+import { getAllSongsPerUserNotPlayedEnough, getCurrentlyPlaying, getPlaylist, getSession, getWeights, MAX_PLAYS, resetAllSongs } from "./db"
+import { SpotifySong } from "./entity/SpotifySong"
 import { getRandomNumber } from "./util"
 
 type Event = 'loading'
@@ -27,15 +28,17 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   // @ts-expect-error
   const db: Connection = req.db
 
-  const session = await getSession(code)
+  const session     = await getSession(code)
   let weightsFromDb = await getWeights(code)
-  const playlist = await getPlaylist(db, session.playlistId)
-  let songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+  const playlist    = await getPlaylist(db, session.playlistId)
+  let songs         = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+  const lastPlayed  = await getCurrentlyPlaying(code)
+  let event         = false
 
   // TODO events toevoegen
   weightsFromDb.delete('event')
 
-  let selectedSongs: any[] = []
+  let selectedSongs: SpotifySong[] = []
 
   if (playlist.songs.length === 0) {
     return {
@@ -48,7 +51,6 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
     if (weightsFromDb.size === 0) {
       await resetAllSongs(db, session.playlistId)
-      console.log('resetting songs')
       songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
       weightsFromDb = await getWeights(code)
       // TODO lol
@@ -68,28 +70,53 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
     const selectedUid = weights[getRandomNumber(0, weights.length - 1)]
 
     if (selectedUid === 'event') {
-      selectedSongs = ['event']
+      event = true
       break
     }
 
     selectedSongs = songs.get(selectedUid)
 
+    // filter out the song that was played before this
+    if (lastPlayed) {
+      selectedSongs = selectedSongs.filter(song => song.id !== lastPlayed.id)
+      console.log(selectedSongs)
+    }
+
     if (!selectedSongs || selectedSongs.length === 0) {
       // this user has no songs left
       weightsFromDb.delete(selectedUid)
     }
+
+    if (weightsFromDb.size === 0) {
+      return {
+        type: 'nosongs',
+        data: {}
+      }
+    }
+
   }
 
-  if (selectedSongs.length === 1 && selectedSongs[0] === 'event') {
+  if (event) {
     return {
       type: 'event',
       data: {}
     }
   }
 
-  const song = selectedSongs[getRandomNumber(0, selectedSongs.length - 1)]
+  let song
+  
+  // const song = selectedSongs[getRandomNumber(0, selectedSongs.length - 1)]
+  for (let i = 0; i < MAX_PLAYS; i++) {
+    let songs = selectedSongs.filter(song => song.plays === i)
 
-  console.log(song)
+    if (songs.length === 0) {
+      continue
+    } else {
+      song = songs[getRandomNumber(0, songs.length - 1)]
+      break
+    }
+  }
+
 
   return {
     type: 'spotify',
