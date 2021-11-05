@@ -67,6 +67,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
       }
     }
 
+    // Select a random user
     const selectedUid = weights[getRandomNumber(0, weights.length - 1)]
 
     if (selectedUid === 'event') {
@@ -89,6 +90,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
   }
 
+  // Return that an event should be done
   if (event) {
     return {
       type: 'event',
@@ -96,16 +98,16 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
     }
   }
 
-  let song
+  let selected
   
-  // const song = selectedSongs[getRandomNumber(0, selectedSongs.length - 1)]
+  // Now select a random song from this user that has been played the least
   for (let i = 0; i < MAX_PLAYS; i++) {
-    let songs = selectedSongs.filter(song => song.plays === i)
+    let filteredSongs = selectedSongs.filter(song => song.plays === i)
 
-    if (songs.length === 0) {
+    if (filteredSongs.length === 0) {
       continue
     } else {
-      song = songs[getRandomNumber(0, songs.length - 1)]
+      selected = filteredSongs[getRandomNumber(0, filteredSongs.length - 1)]
       break
     }
   }
@@ -113,7 +115,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
   return {
     type: 'spotify',
-    data: song
+    data: selected
   }
 
 }
