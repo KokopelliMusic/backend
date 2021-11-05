@@ -6,7 +6,7 @@ import { getAllSessionsFromDB, removeCurrentlyPlaying, removeSessionFromDB } fro
 import { selectNextEvent, selectNextEventSchema } from './events'
 import 'reflect-metadata'
 import { Connection, createConnection } from 'typeorm'
-import { addSpotifySong, addSpotifySongSchema, getNumberOfSongs, getNumberOfSongsSchema } from './playlist'
+import { addSpotifySong, addSpotifySongSchema, addYoutubeSong, addYoutubeSongSchema, getNumberOfSongs, getNumberOfSongsSchema } from './playlist'
 
 const server: FastifyInstance = Fastify({
   logger: {
@@ -41,6 +41,7 @@ server.get(path + '/session/new', newSessionSchema, newSession)
 server.get(path + '/session/claim', claimSessionSchema, claimSession)
 server.get(path + '/event/next', selectNextEventSchema, selectNextEvent)
 server.post(path + '/playlist/add/spotify', addSpotifySongSchema, addSpotifySong)
+server.post(path + '/playlist/add/youtube', addYoutubeSongSchema, addYoutubeSong)
 server.get(path + '/playlist/number-of-songs', getNumberOfSongsSchema, getNumberOfSongs)
 
 setInterval(() => {

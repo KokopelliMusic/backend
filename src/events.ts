@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify"
 import { getAllSongsPerUserNotPlayedEnough, getCurrentlyPlaying, getPlaylist, getSession, getWeights, MAX_PLAYS, resetAllSongs } from "./db"
-import { SpotifySong } from "./entity/SpotifySong"
+import { Song } from "./entity/Song"
 import { getRandomNumber } from "./util"
 
 type Event = 'loading'
@@ -38,7 +38,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   // TODO events toevoegen
   weightsFromDb.delete('event')
 
-  let selectedSongs: SpotifySong[] = []
+  let selectedSongs: Song[] = []
 
   if (playlist.songs.length === 0) {
     return {
@@ -78,8 +78,8 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
     // filter out the song that was played before this
     if (lastPlayed) {
-      selectedSongs = selectedSongs.filter(song => song.id !== lastPlayed.id)
       console.log(selectedSongs)
+      selectedSongs = selectedSongs.filter(f => f.id !== lastPlayed.id)
     }
 
     if (!selectedSongs || selectedSongs.length === 0) {
@@ -92,20 +92,22 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   if (event) {
     return {
       type: 'event',
-      data: {}
+      data: {
+        users: 'TODO'
+      }
     }
   }
 
   let song
-  
+
   // const song = selectedSongs[getRandomNumber(0, selectedSongs.length - 1)]
   for (let i = 0; i < MAX_PLAYS; i++) {
-    let songs = selectedSongs.filter(song => song.plays === i)
+    const _songs = selectedSongs.filter(f => f.plays === i)
 
-    if (songs.length === 0) {
+    if (_songs.length === 0) {
       continue
     } else {
-      song = songs[getRandomNumber(0, songs.length - 1)]
+      song = _songs[getRandomNumber(0, _songs.length - 1)]
       break
     }
   }
