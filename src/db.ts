@@ -1,14 +1,12 @@
 import { database } from "firebase-admin"
-import { on } from "process"
 import { Connection } from "typeorm"
-import { SpotifySong } from "./entity/SpotifySong"
+import { Song } from "./entity/Song"
 import { Session, Sessions } from "./session"
-import { getRandomNumber } from "./util"
 
 type Playlist = {
   dateCreated: string
   name: string
-  songs: SpotifySong[]
+  songs: Song[]
   user: string
   users: Users
 }
@@ -81,7 +79,7 @@ export const getCurrentlyPlaying = (code: string): Promise<CurrentlyPlaying> => 
 
 export const getPlaylist = async (db: Connection, playlistId: string): Promise<Playlist> => {
   const list: Playlist = await get('/playlists/' + playlistId)
-  const songs: SpotifySong[] = await db.manager.find(SpotifySong, { where: { playlistId }})
+  const songs: Song[] = await db.manager.find(Song, { where: { playlistId }})
   list.songs = songs
 
   return list
@@ -113,8 +111,8 @@ export const watchCurrentlyPlaying = (db: Connection, code: string) => {
 
       console.log('Currently playing: ', song)
 
-      if (song.spotifyId && song.playlistId) {
-        updateSpotifyPlays(db, song.spotifyId, song.playlistId)
+      if (song.platformId && song.playlistId) {
+        updatePlays(db, song.platformId, song.playlistId)
       }
     })
 }
@@ -123,14 +121,14 @@ export const removeCurrentlyPlaying = (code: string) => {
   const ref = database().ref('/currently-playing/' + code)
   ref.remove()
   ref.off()
-  
+
 }
 
-const updateSpotifyPlays = (db: Connection, spotifyId: string, playlistId: string) => {
+const updatePlays = (db: Connection, platformId: string, playlistId: string) => {
   db.createQueryBuilder()
-    .update(SpotifySong)
+    .update(Song)
     .set({ plays: () => "plays + 1" })
-    .where({ playlistId, spotifyId })
+    .where({ playlistId, platformId })
     .execute()
 }
 
@@ -139,10 +137,10 @@ const updateSpotifyPlays = (db: Connection, spotifyId: string, playlistId: strin
  * anyway it returns an object mapping the uid to the songs that have not been played more than
  * const MAX_PLAYED
  */
-export const getAllSongsPerUserNotPlayedEnough = async (db: Connection, playlistId: string): Promise<Map<string, SpotifySong[]>> => {
+export const getAllSongsPerUserNotPlayedEnough = async (db: Connection, playlistId: string): Promise<Map<string, Song[]>> => {
   return await getPlaylist(db, playlistId)
     .then(list => {
-      const songs = new Map<string, SpotifySong[]>()
+      const songs = new Map<string, Song[]>()
 
       list.songs.forEach(song => {
         if (song.plays === undefined || song.plays < MAX_PLAYS) {
@@ -162,7 +160,7 @@ export const getAllSongsPerUserNotPlayedEnough = async (db: Connection, playlist
 
 export const resetAllSongs = async (db: Connection, playlistId: string) => {
   return await db.createQueryBuilder()
-    .update(SpotifySong)
+    .update(Song)
     .set({ plays: 0 })
     .where({ playlistId })
     .execute()

@@ -1,36 +1,25 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+export type SimpleSpotifySong = {
+  artist: string;
+  cover: string;
+  length: number;
+};
 
-@Entity()
-export class SpotifySong {
+// @Entity()
+// export class SpotifySong {
 
-  @PrimaryGeneratedColumn("increment")
-  id: number
+//   @PrimaryGeneratedColumn("increment")
+//   id: number
 
-  @Column()
-  title: string
+//   @Column()
+//   artist: string
 
-  @Column()
-  artist: string
+//   @Column()
+//   cover: string
 
-  @Column()
-  cover: string
+//   @Column()
+//   spotifyId: string
 
-  @Column()
-  spotifyId: string
+//   @Column()
+//   length: number
 
-  @Column()
-  length: number
-
-  @Column()
-  addedBy: string
-
-  @Column()
-  playlistId: string
-
-  @Column()
-  plays: number
-
-  @Column()
-  uid: string;
-
-}
+// }

@@ -1,7 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify"
 import { createSessionInDB, watchCurrentlyPlaying } from "./db"
 import { generateCode, getAllSessionIDs } from "./util"
-import { SPOTIFY_REFRESH } from './config.json'
 
 export interface Session {
   claimed: boolean
