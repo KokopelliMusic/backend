@@ -38,18 +38,33 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   // TODO events toevoegen
   weightsFromDb.delete('event')
 
+  console.log('SongsNotPlayedEnough', songs)
+
   let selectedSongs: Song[] = []
 
-  if (playlist.songs.length === 0) {
+  // If the playlist has only one song then everything breaks :(
+  if (playlist.songs.length === 0 || playlist.songs.length === 1) {
     return {
       type: 'nosongs',
       data: {}
     }
   }
 
+  if (songs.size === 0) {
+    // If there are no songs left to play, reset the playlist
+    await resetAllSongs(db, session.playlistId)
+    songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+    weightsFromDb = await getWeights(code)
+
+    // TODO lol
+    weightsFromDb.delete('event')
+  }
+
+
   while (!selectedSongs || selectedSongs.length === 0) {
 
     if (weightsFromDb.size === 0) {
+    // if (weightsFromDb.size === 0 || Object.keys(songs).length === 0) {
       await resetAllSongs(db, session.playlistId)
       songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
       weightsFromDb = await getWeights(code)
@@ -78,7 +93,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
     // filter out the song that was played before this
     if (lastPlayed) {
-      console.log(selectedSongs)
+      console.log('Filter out the song that was last played', selectedSongs)
       selectedSongs = selectedSongs.filter(f => f.id !== lastPlayed.id)
     }
 
@@ -112,9 +127,10 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
     }
   }
 
+  console.log('Selected song: ', song)
 
   return {
-    type: 'spotify',
+    type: song.songType,
     data: song
   }
 
