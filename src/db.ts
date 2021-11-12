@@ -20,6 +20,7 @@ type Weight = number
 type CurrentlyPlaying = {
   addedBy: string
   id: number
+  songType: string
 }
 
 export const BASE_WEIGHT = 10
@@ -53,9 +54,22 @@ const watchUsersAndInitialze = (code: string, playlistId: string) => {
     .ref(`/playlists/${playlistId}/users`)
     // Every time a user is added, run this function
     .on('child_added', (snap) => {
+      // set the weight for the user
       db
-      .ref(`/sessions/${code}/weights/${snap.val()}`)
-      .set(BASE_WEIGHT)
+        .ref(`/sessions/${code}/weights/${snap.val()}`)
+        .set(BASE_WEIGHT)
+      
+      // update the username list
+      getUsername(snap.val())
+        .then(username => db.ref(`/sessions/${code}/users/${snap.val()}`).set(username))
+      
+      // increment the event weight
+      const weightRef = db.ref(`/sessions/${code}/weights/event`) 
+      
+      weightRef
+        .get()
+        .then(snap => snap.val())
+        .then(val => weightRef.set(val + 1))
     })
 }
 
@@ -71,6 +85,10 @@ export const getAllSessionsFromDB = async (): Promise<Sessions> => {
 
 export const getSession = (code: string): Promise<Session> => {
   return get('/sessions/' + code)
+}
+
+export const getUsername = (uid: string): Promise<string> => {
+  return get(`/users/${uid}/user/username`)
 }
 
 export const getCurrentlyPlaying = (code: string): Promise<CurrentlyPlaying> => {
