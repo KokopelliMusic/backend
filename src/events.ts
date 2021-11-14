@@ -43,16 +43,31 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   // First song cannot be an event
   if (firstTime || lastPlayed.songType === 'event') weightsFromDb.delete('event')
 
+  console.log('SongsNotPlayedEnough', songs)
+
   let selectedSongs: Song[] = []
 
-  if (playlist.songs.length === 0) {
+  // If the playlist has only one song then everything breaks :(
+  if (playlist.songs.length === 0 || playlist.songs.length === 1) {
     return {
       type: 'nosongs',
       data: {}
     }
   }
 
+  if (songs.size === 0) {
+    // If there are no songs left to play, reset the playlist
+    await resetAllSongs(db, session.playlistId)
+    songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+    weightsFromDb = await getWeights(code)
+
+    // TODO lol
+    weightsFromDb.delete('event')
+  }
+
+
   while (!selectedSongs || selectedSongs.length === 0) {
+
 
     // only 'event' is left
     if (weightsFromDb.size === 1) {
@@ -73,6 +88,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
       }
     }
 
+    // Select a random user
     const selectedUid = weights[getRandomNumber(0, weights.length - 1)]
 
     console.log('selectedUid', selectedUid)
@@ -99,6 +115,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
   }
 
+  // Return that an event should be done
   if (event) {
     return {
       type: 'event',
@@ -122,9 +139,10 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
     }
   }
 
+  console.log('Selected song: ', song)
 
   return {
-    type: 'spotify',
+    type: song.songType,
     data: song
   }
 

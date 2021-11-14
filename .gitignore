@@ -2,6 +2,8 @@ kokopelli-2c629*.json
 config.json
 firebase.json
 
+*.db
+
 # Logs
 logs
 *.log
