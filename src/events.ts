@@ -16,7 +16,8 @@ export const selectNextEventSchema = {
       type: 'object',
       required: [ 'code' ],
       properties: {
-        code: { type: 'string' }
+        code: { type: 'string' },
+        firstTime: { type: 'boolean' }
       }
     }
   }
@@ -25,6 +26,8 @@ export const selectNextEventSchema = {
 export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) => {
   // @ts-expect-error
   const code = req.query.code.toUpperCase()
+  // @ts-expect-error
+  const firstTime = req.query.firstTime
   // @ts-expect-error
   const db: Connection = req.db
 
@@ -35,8 +38,10 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   const lastPlayed  = await getCurrentlyPlaying(code)
   let event         = false
 
-  // TODO events toevoegen
-  weightsFromDb.delete('event')
+  console.log('lastPlayed', lastPlayed)
+
+  // First song cannot be an event
+  if (firstTime || lastPlayed.songType === 'event') weightsFromDb.delete('event')
 
   console.log('SongsNotPlayedEnough', songs)
 
@@ -63,13 +68,14 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
   while (!selectedSongs || selectedSongs.length === 0) {
 
-    if (weightsFromDb.size === 0) {
-    // if (weightsFromDb.size === 0 || Object.keys(songs).length === 0) {
+
+    // only 'event' is left
+    if (weightsFromDb.size === 1) {
       await resetAllSongs(db, session.playlistId)
       songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
       weightsFromDb = await getWeights(code)
-      // TODO lol
-      weightsFromDb.delete('event')
+    
+      if (firstTime || lastPlayed.songType === 'event') weightsFromDb.delete('event')
     }
 
     // Get all weights
@@ -85,6 +91,8 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
     // Select a random user
     const selectedUid = weights[getRandomNumber(0, weights.length - 1)]
 
+    console.log('selectedUid', selectedUid)
+
     if (selectedUid === 'event') {
       event = true
       break
@@ -92,15 +100,17 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
 
     selectedSongs = songs.get(selectedUid)
 
-    // filter out the song that was played before this
-    if (lastPlayed) {
-      console.log('Filter out the song that was last played', selectedSongs)
-      selectedSongs = selectedSongs.filter(f => f.id !== lastPlayed.id)
-    }
-
     if (!selectedSongs || selectedSongs.length === 0) {
       // this user has no songs left
       weightsFromDb.delete(selectedUid)
+      continue
+    }
+
+    // filter out the song that was played before this
+    if (lastPlayed) {
+      
+      console.log('selectedSongs', selectedSongs)
+      selectedSongs = selectedSongs.filter(f => f.id !== lastPlayed.id)
     }
 
   }
@@ -110,7 +120,7 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
     return {
       type: 'event',
       data: {
-        users: 'TODO'
+        type: 'event'
       }
     }
   }
