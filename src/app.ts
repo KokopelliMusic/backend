@@ -3,7 +3,7 @@ import { claimSession, claimSessionSchema, newSession, newSessionSchema, Session
 import * as admin from 'firebase-admin'
 import { FIREBASE_CONFIG, path } from './config.json'
 import { getAllSessionsFromDB, removeCurrentlyPlaying, removeSessionFromDB } from './db'
-import { selectNextEvent, selectNextEventSchema } from './events'
+import { selectNextEvent, selectNextEventSchema, selectNextEventWithoutEventsOrYouTube } from './events'
 import 'reflect-metadata'
 import { Connection, createConnection } from 'typeorm'
 import { addSpotifySong, addSpotifySongSchema, addYoutubeSong, addYoutubeSongSchema, getNumberOfSongs, getNumberOfSongsSchema } from './playlist'
@@ -39,7 +39,7 @@ server.addHook('preHandler', async (req, reply) => {
 
 server.get(path + '/session/new', newSessionSchema, newSession)
 server.get(path + '/session/claim', claimSessionSchema, claimSession)
-server.get(path + '/event/next', selectNextEventSchema, selectNextEvent)
+server.get(path + '/event/next', selectNextEventSchema, selectNextEventWithoutEventsOrYouTube)
 server.post(path + '/playlist/add/spotify', addSpotifySongSchema, addSpotifySong)
 server.post(path + '/playlist/add/youtube', addYoutubeSongSchema, addYoutubeSong)
 server.get(path + '/playlist/number-of-songs', getNumberOfSongsSchema, getNumberOfSongs)

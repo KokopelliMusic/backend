@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify"
 import { getAllSongsPerUserNotPlayedEnough, getCurrentlyPlaying, getPlaylist, getSession, getWeights, MAX_PLAYS, resetAllSongs } from "./db"
-import { Song } from "./entity/Song"
+import { Song, SongType } from "./entity/Song"
 import { getRandomNumber } from "./util"
 
 type Event = 'loading'
@@ -23,8 +23,99 @@ export const selectNextEventSchema = {
   }
 }
 
-export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) => {
+export const selectNextEventWithoutEventsOrYouTube = async (req: FastifyRequest, reply: FastifyReply) => {
   // @ts-expect-error
+  const code = req.query.code.toUpperCase()
+  // @ts-expect-error
+  const db: Connection = req.db
+
+  const session     = await getSession(code)
+  const playlist    = await getPlaylist(db, session.playlistId)
+  const lastPlayed  = await getCurrentlyPlaying(code)
+
+  let weightsFromDb = await getWeights(code)
+  let songs         = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+
+  const filterOutYoutube = () => {
+    songs.forEach((songArray, user) => {
+      songs.set(user, songArray.filter(song => song.songType !== SongType.YouTube))
+    })
+  }
+
+  const resetPlaylist = async () => {
+    await resetAllSongs(db, session.playlistId)
+    songs = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
+    weightsFromDb = await getWeights(code)
+
+    weightsFromDb.delete('event')
+    filterOutYoutube()
+  }
+
+  weightsFromDb.delete('event')
+  filterOutYoutube()
+
+  if (playlist.songs.length === 0 || playlist.songs.length === 1) {
+    return {
+      type: 'nosongs',
+      data: {}
+    }
+  }
+
+  if (songs.size === 0) {
+    await resetPlaylist()
+  }
+
+  let selectedSongs: Song[] = []
+
+  while (!selectedSongs || selectedSongs.length === 0) {
+    // No users are left
+    if (weightsFromDb.size === 0) {
+      await resetPlaylist()
+    }
+
+    const weights = []
+
+    for (const [uid, weight] of weightsFromDb.entries()) {
+      for (let i = 0; i < weight; i++) {
+        weights.push(uid)
+      }
+    }
+
+    const selectedUid = weights[getRandomNumber(0, weights.length - 1)]
+
+    selectedSongs = songs.get(selectedUid)
+
+    if (!selectedSongs || selectedSongs.length === 0) {
+      weightsFromDb.delete(selectedUid)
+      continue
+    }
+
+    if (lastPlayed) {
+      selectedSongs = selectedSongs.filter(f => f.id !== lastPlayed.id)
+    }
+  } 
+
+  let song
+
+  for (let i = 0; i < MAX_PLAYS; i++) {
+    const _songs = selectedSongs.filter(f => f.plays === i)
+
+    if (_songs.length === 0) {
+      continue
+    } else {
+      song = _songs[getRandomNumber(0, _songs.length - 1)]
+      break
+    }
+  }
+
+  return {
+    type: song.songType,
+    data: song
+  }
+}
+
+export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) => {
+  // @ts-expect-error1
   const code = req.query.code.toUpperCase()
   // @ts-expect-error
   const firstTime = req.query.firstTime
@@ -37,6 +128,9 @@ export const selectNextEvent = async (req: FastifyRequest, reply: FastifyReply) 
   let songs         = await getAllSongsPerUserNotPlayedEnough(db, session.playlistId)
   const lastPlayed  = await getCurrentlyPlaying(code)
   let event         = false
+
+  // Remove events
+  weightsFromDb.delete('event')
 
   console.log('lastPlayed', lastPlayed)
 
